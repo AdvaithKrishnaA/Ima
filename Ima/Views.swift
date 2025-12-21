@@ -11,28 +11,29 @@ struct TaskCardView: View {
     @State private var isCompleting = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: isDominant ? 16 : 12) {
+        VStack(alignment: .leading, spacing: 16) {
             // Header with title and complete button
             HStack(alignment: .center, spacing: 12) {
                 // Title on the left
                 Text(task.title)
                     .font(dynamicTitleFont)
                     .lineLimit(isDominant ? 3 : 2)
-                    .foregroundStyle(.primary)
-                
+                    .foregroundStyle(isDominant ? .white : .primary)
+                    .padding(.leading, isDominant ? 0 : 8)
                 Spacer()
                 
                 // Timer and complete button on the right
                 HStack(spacing: 12) {
                     TimeRemainingView(task: task, isDominant: isDominant)
-                    
+                    .padding(.horizontal, isDominant ? 0 : 4)
                     Button(action: handleComplete) {
                         Image(systemName: (isCompleting || task.isCompleted) ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: isDominant ? 20 : 18, weight: .medium))
-                            .foregroundStyle((isCompleting || task.isCompleted) ? .green : .secondary)
+                            .foregroundStyle((isCompleting || task.isCompleted) ? .green : (isDominant ? .white : .secondary))
                     }
                     .buttonStyle(.plain)
                     .disabled(isCompleting || task.isCompleted)
+                    .padding(.trailing, isDominant ? 0 : 8)
                 }
             }
             
@@ -42,7 +43,8 @@ struct TaskCardView: View {
                     if let location = task.location, !location.isEmpty {
                         Label(location, systemImage: "location")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(isDominant ? .white.opacity(0.8) : .secondary)
+                            .padding(.leading, isDominant ? 0 : 8)
                     }
                     
                     if let link = task.link {
@@ -53,7 +55,7 @@ struct TaskCardView: View {
                                     .lineLimit(1)
                             }
                             .font(.footnote)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(isDominant ? Color.white.opacity(0.6) : Color.secondary)
                         }
                         .buttonStyle(.plain)
                     }
@@ -65,7 +67,7 @@ struct TaskCardView: View {
         .padding(isDominant ? 24 : 18)
         .background(
             RoundedRectangle(cornerRadius: isDominant ? 24 : 18, style: .continuous)
-                .fill(taskBackgroundColor)
+                .fill(isDominant ? AnyShapeStyle(Color.imaPurple) : AnyShapeStyle(.ultraThickMaterial))
         )
         .scaleEffect(isCompleting ? 0.92 : 1.0)
         .opacity(isCompleting ? 0.4 : 1.0)
@@ -86,14 +88,6 @@ struct TaskCardView: View {
         }
     }
     
-    private var taskBackgroundColor: Color {
-        if isDominant {
-            return Color.imaPurple.opacity(0.4)
-        } else {
-            return Color.black.opacity(0.25)
-        }
-    }
-    
     private var dynamicTitleFont: Font {
         let titleLength = task.title.count
         if isDominant {
@@ -110,15 +104,6 @@ struct TaskCardView: View {
             } else {
                 return .system(size: 18, weight: .medium, design: .rounded)
             }
-        }
-    }
-    
-    private var urgencyIntensity: Double {
-        switch task.urgencyLevel {
-        case .normal: return 0.8
-        case .urgent: return 1.0
-        case .critical: return 1.2
-        case .expired: return 0.4
         }
     }
     
@@ -151,13 +136,13 @@ struct TimeRemainingView: View {
         ZStack {
             // Background circle
             Circle()
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 2)
+                .stroke(isDominant ? Color.white.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 2)
             
-            // Progress circle with gradient
+            // Progress circle
             Circle()
                 .trim(from: 0, to: progressValue)
                 .stroke(
-                    progressGradient,
+                    indicatorColor,
                     style: StrokeStyle(lineWidth: 2, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -166,7 +151,7 @@ struct TimeRemainingView: View {
             // Time text in center - slightly smaller font, center aligned
             Text(formatCompactTime(task.timeRemaining))
                 .font(.system(size: isDominant ? 14 : 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(progressColor)
+                .foregroundStyle(indicatorColor)
                 .multilineTextAlignment(.center)
                 .padding(4)
         }
@@ -183,37 +168,13 @@ struct TimeRemainingView: View {
         return max(0, min(1, remaining / totalDuration))
     }
     
-    private var progressGradient: AngularGradient {
-        let progress = progressValue
-        if progress > 0.6 {
-            // Green when plenty of time
-            return AngularGradient(
-                colors: [.primary, .primary.opacity(0.8)],
-                center: .center
-            )
-        } else if progress > 0.3 {
-            // Yellow when moderate time
-            return AngularGradient(
-                colors: [.yellow, .yellow.opacity(0.8)],
-                center: .center
-            )
+    private var indicatorColor: Color {
+        let isLowTime = progressValue < 0.3
+        if isDominant {
+            // Use explicit yellow that doesn't adapt to color scheme
+            return isLowTime ? Color(red: 1.0, green: 0.9, blue: 0.2) : .white
         } else {
-            // Orange when low time
-            return AngularGradient(
-                colors: [.orange, .orange.opacity(0.8)],
-                center: .center
-            )
-        }
-    }
-    
-    private var progressColor: Color {
-        let progress = progressValue
-        if progress > 0.6 {
-            return .primary
-        } else if progress > 0.3 {
-            return .yellow
-        } else {
-            return .orange
+            return isLowTime ? .orange : .primary
         }
     }
 }

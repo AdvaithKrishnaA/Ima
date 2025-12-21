@@ -66,6 +66,7 @@ struct LiquidGlassButton: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .foregroundStyle(prominent ? .white : .primary)
             .padding(.horizontal, circular ? 0 : 16)
             .padding(.vertical, circular ? 0 : 8)
             .frame(width: circular ? 36 : nil, height: circular ? 36 : nil)
@@ -77,37 +78,30 @@ struct LiquidGlassButton: ButtonStyle {
     
     private var buttonBackground: some View {
         ZStack {
-            // Base material
-            baseMaterial
-            
-            // Prominent overlay if needed
-            if prominent {
-                prominentOverlay
-            }
+            // Background - solid purple for prominent, translucent for others
+            baseBackground
             
             // Border
             borderOverlay
         }
     }
     
-    private var baseMaterial: some View {
+    private var baseBackground: some View {
         Group {
             if circular {
-                Circle().fill(.ultraThinMaterial)
+                if prominent {
+                    Circle().fill(Color.imaPurple)
+                } else {
+                    Circle().fill(.ultraThinMaterial)
+                }
             } else {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
-        }
-    }
-    
-    private var prominentOverlay: some View {
-        Group {
-            if circular {
-                Circle().fill(prominentGradient)
-            } else {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(prominentGradient)
+                if prominent {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.imaPurple)
+                } else {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
             }
         }
     }
@@ -121,17 +115,6 @@ struct LiquidGlassButton: ButtonStyle {
                     .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
             }
         }
-    }
-    
-    private var prominentGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color.imaPurple.opacity(0.8),
-                Color.imaPurple.opacity(0.5)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
     }
 }
 

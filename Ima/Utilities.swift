@@ -49,7 +49,7 @@ extension URL {
 
 // MARK: - Color Extensions
 extension Color {
-    static let imaPurple = Color(hex: "6E56CF")
+    static let imaPurple = Color(hex: "CB1B45")
     
     /// Initialize Color from hex string
     init(hex: String) {

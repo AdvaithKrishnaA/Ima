@@ -168,6 +168,7 @@ struct TimeRemainingView: View {
                 .font(.system(size: isDominant ? 14 : 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle(progressColor)
                 .multilineTextAlignment(.center)
+                .padding(4)
         }
         .frame(width: isDominant ? 50 : 40, height: isDominant ? 50 : 40)
         .onReceive(timer) { _ in
@@ -187,7 +188,7 @@ struct TimeRemainingView: View {
         if progress > 0.6 {
             // Green when plenty of time
             return AngularGradient(
-                colors: [.green, .green.opacity(0.8)],
+                colors: [.primary, .primary.opacity(0.8)],
                 center: .center
             )
         } else if progress > 0.3 {
@@ -208,7 +209,7 @@ struct TimeRemainingView: View {
     private var progressColor: Color {
         let progress = progressValue
         if progress > 0.6 {
-            return .green
+            return .primary
         } else if progress > 0.3 {
             return .yellow
         } else {
@@ -271,31 +272,13 @@ struct StatusBarView: View {
         .padding(.vertical, 10)
         .background(
             ZStack {
-                // Base material
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                
-                // Purple + Pink gradient overlay
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.black.opacity(0.25),
-                                Color.pink.opacity(0.05),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                
                 // Border with purple/pink tint
                 Capsule()
+                    .fill(.ultraThinMaterial)
                     .strokeBorder(
                         LinearGradient(
                             colors: [
                                 Color.imaPurple.opacity(0.25),
-                                Color.pink.opacity(0.15),
                                 Color.clear,
                                 Color.imaPurple.opacity(0.08)
                             ],

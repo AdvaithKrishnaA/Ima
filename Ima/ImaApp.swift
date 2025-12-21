@@ -141,7 +141,7 @@ struct PreferencesView: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 80)
                             .onChange(of: settings.maxAllowedDays) { _, newValue in
-                                // Clamp to 1-5 range
+                                // Clamp to 1-7 range
                                 settings.maxAllowedDays = max(1, min(newValue, 7))
                             }
                         
@@ -152,6 +152,40 @@ struct PreferencesView: View {
                         Spacer()
                         
                         Text("= \(formatRemaining(settings.maxAllowedDuration))")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                
+                // Default Duration Setting
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Default Task Duration")
+                        .font(.headline.weight(.medium))
+                        .foregroundStyle(.primary)
+                    
+                    Text("Default duration when creating new tasks (1-24 hours)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    HStack(spacing: 12) {
+                        TextField("Hours", value: $settings.defaultDurationHours, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                            .onChange(of: settings.defaultDurationHours) { _, newValue in
+                                // Clamp to 1-24 range
+                                settings.defaultDurationHours = max(1, min(newValue, 24))
+                            }
+                        
+                        Text("hour\(settings.defaultDurationHours == 1 ? "" : "s")")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        Text("= \(formatRemaining(settings.defaultDuration))")
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }

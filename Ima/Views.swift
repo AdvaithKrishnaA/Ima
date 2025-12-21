@@ -230,8 +230,8 @@ struct StatusBarView: View {
                             .fill(
                                 RadialGradient(
                                     colors: [
-                                        flameColor.opacity(0.5 * store.currentFireIntensity),
-                                        flameColor.opacity(0.3 * store.currentFireIntensity),
+                                        Color.imaPurple.opacity(0.5 * store.currentFireIntensity),
+                                        Color.imaPurple.opacity(0.3 * store.currentFireIntensity),
                                         Color.clear
                                     ],
                                     center: .center,
@@ -247,7 +247,7 @@ struct StatusBarView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 24, height: 24)
-                            .foregroundStyle(flameColor)
+                            .foregroundStyle(Color.imaPurple)
                     }
             
             Spacer()
@@ -324,17 +324,6 @@ struct StatusBarView: View {
                     )
             }
         )
-    }
-    
-    private var flameColor: Color {
-        let intensity = store.currentFireIntensity
-        if intensity > 0.7 {
-            return Color.imaPurple
-        } else if intensity > 0.4 {
-            return Color.pink
-        } else {
-            return Color.imaPurple.opacity(0.7)
-        }
     }
 }
 

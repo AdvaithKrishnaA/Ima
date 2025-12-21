@@ -187,12 +187,14 @@ struct InlineCreateTaskView: View {
     var onSave: (_ title: String, _ hours: Int, _ minutes: Int, _ location: String, _ link: String) -> Void
 
     @State private var title: String = ""
+    @State private var daysText: String = ""
     @State private var hoursText: String = ""
     @State private var minutesText: String = ""
     @State private var location: String = ""
     @State private var link: String = ""
     @State private var timeSelectionMode: TimeSelectionMode = .relative
     @State private var selectedDate = Date().addingTimeInterval(3600) // 1 hour from now
+    @FocusState private var isTaskNameFocused: Bool
     
     @EnvironmentObject private var settings: ImaSettings
     
@@ -208,9 +210,10 @@ struct InlineCreateTaskView: View {
         ("3d", 3 * 24 * 3600)
     ]
 
+    private var days: Int { Int(daysText) ?? 0 }
     private var hours: Int { Int(hoursText) ?? 0 }
     private var minutes: Int { min(max(Int(minutesText) ?? 0, 0), 59) }
-    private var relativeDuration: TimeInterval { TimeInterval((hours * 3600) + (minutes * 60)) }
+    private var relativeDuration: TimeInterval { TimeInterval((days * 86400) + (hours * 3600) + (minutes * 60)) }
     private var absoluteDuration: TimeInterval { max(0, selectedDate.timeIntervalSinceNow) }
     
     private var totalDuration: TimeInterval {
@@ -237,12 +240,18 @@ struct InlineCreateTaskView: View {
     
     private func resetForm() {
         title = ""
-        hoursText = ""
+        daysText = ""
+        hoursText = String(settings.defaultDurationHours)
         minutesText = ""
         location = ""
         link = ""
         timeSelectionMode = .relative
-        selectedDate = Date().addingTimeInterval(3600) // 1 hour from now
+        selectedDate = Date().addingTimeInterval(settings.defaultDuration)
+        
+        // Focus on task name field after a brief delay to ensure the view is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            isTaskNameFocused = true
+        }
     }
 
     var body: some View {
@@ -264,6 +273,7 @@ struct InlineCreateTaskView: View {
                 TextField("What is this about?", text: $title)
                     .textFieldStyle(.roundedBorder)
                     .font(.body)
+                    .focused($isTaskNameFocused)
 
                 // Location and URL on same line
                 HStack(spacing: 8) {
@@ -324,10 +334,20 @@ struct InlineCreateTaskView: View {
                             // Time inputs and max warning on same line
                             HStack(spacing: 8) {
                                 VStack(alignment: .leading, spacing: 4) {
+                                    Text("Days").font(.caption).foregroundStyle(.secondary)
+                                    TextField("0", text: $daysText)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 50)
+                                        .onChange(of: daysText) { _, newValue in
+                                            daysText = newValue.filter { $0.isNumber }
+                                        }
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 4) {
                                     Text("Hours").font(.caption).foregroundStyle(.secondary)
                                     TextField("0", text: $hoursText)
                                         .textFieldStyle(.roundedBorder)
-                                        .frame(width: 60)
+                                        .frame(width: 50)
                                         .onChange(of: hoursText) { _, newValue in
                                             hoursText = newValue.filter { $0.isNumber }
                                         }
@@ -336,13 +356,13 @@ struct InlineCreateTaskView: View {
                                 Text(":")
                                     .font(.headline)
                                     .padding(.top, 18) // Align with text fields
-                                    .padding(.horizontal, 4)
+                                    .padding(.horizontal, 2)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Minutes").font(.caption).foregroundStyle(.secondary)
                                     TextField("0", text: $minutesText)
                                         .textFieldStyle(.roundedBorder)
-                                        .frame(width: 60)
+                                        .frame(width: 50)
                                         .onChange(of: minutesText) { _, newValue in
                                             minutesText = newValue.filter { $0.isNumber }
                                         }
@@ -363,8 +383,13 @@ struct InlineCreateTaskView: View {
                                 ForEach(presetDurations, id: \.1) { label, duration in
                                     Button(action: {
                                         let cappedDuration = min(duration, settings.maxAllowedDuration)
-                                        hoursText = String(Int(cappedDuration) / 3600)
-                                        minutesText = String((Int(cappedDuration) % 3600) / 60)
+                                        let totalDays = Int(cappedDuration) / 86400
+                                        let remainingHours = (Int(cappedDuration) % 86400) / 3600
+                                        let remainingMinutes = (Int(cappedDuration) % 3600) / 60
+                                        
+                                        daysText = totalDays > 0 ? String(totalDays) : ""
+                                        hoursText = remainingHours > 0 ? String(remainingHours) : ""
+                                        minutesText = remainingMinutes > 0 ? String(remainingMinutes) : ""
                                     }) {
                                         Text(label)
                                             .font(.caption)

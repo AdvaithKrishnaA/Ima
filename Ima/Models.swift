@@ -65,6 +65,7 @@ final class ImaSettings: ObservableObject {
     static let hardUpperBound: TimeInterval = 7 * 24 * 60 * 60 // 7 days
     
     @Published var maxAllowedDays: Int = 3 // 1-5 days
+    @Published var defaultDurationHours: Int = 1 // Default task duration in hours
     @Published var resetFrequency: ResetFrequency = .daily
     @Published var resetTime: Date = Calendar.current.date(from: DateComponents(hour: 0, minute: 0)) ?? Date()
     @Published var selectedWeekdays: Set<Int> = [1] // Sunday = 1, Monday = 2, etc.
@@ -72,6 +73,10 @@ final class ImaSettings: ObservableObject {
     
     var maxAllowedDuration: TimeInterval {
         TimeInterval(maxAllowedDays * 24 * 60 * 60)
+    }
+    
+    var defaultDuration: TimeInterval {
+        TimeInterval(defaultDurationHours * 3600)
     }
     
     init() {
@@ -83,6 +88,7 @@ final class ImaSettings: ObservableObject {
 extension ImaSettings {
     func saveSettings() {
         UserDefaults.standard.set(maxAllowedDays, forKey: "ImaMaxDays")
+        UserDefaults.standard.set(defaultDurationHours, forKey: "ImaDefaultDurationHours")
         UserDefaults.standard.set(resetFrequency.rawValue, forKey: "ImaResetFrequency")
         
         if let resetTimeData = try? JSONEncoder().encode(resetTime) {
@@ -99,6 +105,9 @@ extension ImaSettings {
     private func loadSettings() {
         maxAllowedDays = UserDefaults.standard.object(forKey: "ImaMaxDays") as? Int ?? 3
         maxAllowedDays = max(1, min(maxAllowedDays, 5)) // Ensure 1-5 range
+        
+        defaultDurationHours = UserDefaults.standard.object(forKey: "ImaDefaultDurationHours") as? Int ?? 1
+        defaultDurationHours = max(1, min(defaultDurationHours, 24)) // Ensure 1-24 range
         
         if let resetFreqString = UserDefaults.standard.string(forKey: "ImaResetFrequency"),
            let resetFreq = ResetFrequency(rawValue: resetFreqString) {

@@ -217,7 +217,7 @@ struct TimeRemainingView: View {
     }
 }
 
-// MARK: - Status Bar View (replaces Fire Indicator)
+// MARK: - Status Bar View
 struct StatusBarView: View {
     @EnvironmentObject private var store: TaskStore
     
@@ -225,29 +225,11 @@ struct StatusBarView: View {
         HStack(spacing: 16) {
                     // Custom icon with intensity glow
                     ZStack {
-                        // Glow effect based on fire intensity
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [
-                                        Color.imaPurple.opacity(0.5 * store.currentFireIntensity),
-                                        Color.imaPurple.opacity(0.3 * store.currentFireIntensity),
-                                        Color.clear
-                                    ],
-                                    center: .center,
-                                    startRadius: 0,
-                                    endRadius: 25
-                                )
-                            )
-                            .frame(width: 50, height: 50)
-                            .blur(radius: 6)
-                        
-                        // Custom icon
                         Image("AppSVGIcon")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 24, height: 24)
-                            .foregroundStyle(Color.imaPurple)
+                            .foregroundStyle(.primary)
                     }
             
             Spacer()
@@ -298,7 +280,7 @@ struct StatusBarView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.imaPurple.opacity(0.08),
+                                Color.black.opacity(0.25),
                                 Color.pink.opacity(0.05),
                                 Color.clear
                             ],
@@ -320,7 +302,7 @@ struct StatusBarView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 0.5
+                        lineWidth: 1
                     )
             }
         )

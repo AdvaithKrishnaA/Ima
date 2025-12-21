@@ -194,7 +194,11 @@ struct InlineCreateTaskView: View {
     @State private var link: String = ""
     @State private var timeSelectionMode: TimeSelectionMode = .relative
     @State private var selectedDate = Date().addingTimeInterval(3600) // 1 hour from now
-    @FocusState private var isTaskNameFocused: Bool
+    @FocusState private var focusedField: FocusedField?
+    
+    enum FocusedField {
+        case taskName, location, url, days, hours, minutes
+    }
     
     @EnvironmentObject private var settings: ImaSettings
     
@@ -250,7 +254,7 @@ struct InlineCreateTaskView: View {
         
         // Focus on task name field after a brief delay to ensure the view is ready
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            isTaskNameFocused = true
+            focusedField = .taskName
         }
     }
 
@@ -273,16 +277,18 @@ struct InlineCreateTaskView: View {
                 TextField("What is this about?", text: $title)
                     .textFieldStyle(.roundedBorder)
                     .font(.body)
-                    .focused($isTaskNameFocused)
+                    .focused($focusedField, equals: .taskName)
 
                 // Location and URL on same line
                 HStack(spacing: 8) {
                     TextField("Location", text: $location)
                         .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .location)
                     
                     HStack(spacing: 4) {
                         TextField("URL", text: $link)
                             .textFieldStyle(.roundedBorder)
+                            .focused($focusedField, equals: .url)
                         
                         if !link.isEmpty {
                             if URL.isValidURLFormat(link) {
@@ -338,6 +344,7 @@ struct InlineCreateTaskView: View {
                                     TextField("0", text: $daysText)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 50)
+                                        .focused($focusedField, equals: .days)
                                         .onChange(of: daysText) { _, newValue in
                                             daysText = newValue.filter { $0.isNumber }
                                         }
@@ -348,6 +355,7 @@ struct InlineCreateTaskView: View {
                                     TextField("0", text: $hoursText)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 50)
+                                        .focused($focusedField, equals: .hours)
                                         .onChange(of: hoursText) { _, newValue in
                                             hoursText = newValue.filter { $0.isNumber }
                                         }
@@ -363,6 +371,7 @@ struct InlineCreateTaskView: View {
                                     TextField("0", text: $minutesText)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 50)
+                                        .focused($focusedField, equals: .minutes)
                                         .onChange(of: minutesText) { _, newValue in
                                             minutesText = newValue.filter { $0.isNumber }
                                         }
@@ -433,8 +442,8 @@ struct InlineCreateTaskView: View {
                 HStack {
                     Spacer()
                     Button("Save") {
-                        // Clear focus first to avoid visual lag
-                        isTaskNameFocused = false
+                        // Clear focus from all fields first to avoid visual lag
+                        focusedField = nil
                         
                         // Convert to hours/minutes for the callback
                         let duration = min(totalDuration, settings.maxAllowedDuration)

@@ -433,6 +433,9 @@ struct InlineCreateTaskView: View {
                 HStack {
                     Spacer()
                     Button("Save") {
+                        // Clear focus first to avoid visual lag
+                        isTaskNameFocused = false
+                        
                         // Convert to hours/minutes for the callback
                         let duration = min(totalDuration, settings.maxAllowedDuration)
                         let finalHours = Int(duration) / 3600

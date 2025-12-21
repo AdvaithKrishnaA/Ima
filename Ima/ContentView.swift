@@ -19,33 +19,36 @@ struct ContentView: View {
             // Main content below header
             VStack(spacing: 0) {
                 Spacer().frame(height: 56) // space for integrated header
-                if isPresentingCreate {
-                    VStack(alignment: .leading, spacing: 12) {
-                        InlineCreateTaskView(
-                            onCancel: { withAnimation(.easeInOut) { isPresentingCreate = false } },
-                            onSave: { title, hours, minutes, location, link in
-                                createTask(title: title, hours: hours, minutes: minutes, location: location, link: link)
-                            }
-                        )
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .transition(.opacity)
-                }
                 if store.sortedByExpiry.isEmpty && !isPresentingCreate {
                     EmptyStateView()
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
+                            // New task creation form at the top of scroll view
+                            if isPresentingCreate {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    InlineCreateTaskView(
+                                        onCancel: { withAnimation(.easeInOut) { isPresentingCreate = false } },
+                                        onSave: { title, hours, minutes, location, link in
+                                            createTask(title: title, hours: hours, minutes: minutes, location: location, link: link)
+                                        }
+                                    )
+                                }
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(.ultraThinMaterial)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                                )
+                                .padding(.horizontal, 20)
+                                .padding(.top, 12)
+                                .transition(.opacity)
+                            }
+                            
+                            // Existing tasks
                             if let dominantTask = store.sortedByExpiry.first {
                                 TaskCardView(
                                     task: dominantTask,
@@ -54,7 +57,7 @@ struct ContentView: View {
                                 )
                                 .id("dominant-\(dominantTask.id)")
                                 .padding(.horizontal, 20)
-                                .padding(.top, 20)
+                                .padding(.top, isPresentingCreate ? 12 : 20)
                                 .transition(.asymmetric(
                                     insertion: .scale.combined(with: .opacity),
                                     removal: .scale.combined(with: .opacity).combined(with: .move(edge: .trailing))
@@ -188,12 +191,41 @@ struct InlineCreateTaskView: View {
     @State private var minutesText: String = ""
     @State private var location: String = ""
     @State private var link: String = ""
+    @State private var timeSelectionMode: TimeSelectionMode = .relative
+    @State private var selectedDate = Date().addingTimeInterval(3600) // 1 hour from now
     
     @EnvironmentObject private var settings: ImaSettings
+    
+    enum TimeSelectionMode: String, CaseIterable {
+        case relative = "Duration"
+        case absolute = "Date & Time"
+    }
+    
+    private let presetDurations: [(String, TimeInterval)] = [
+        ("1h", 3600),
+        ("6h", 6 * 3600),
+        ("1d", 24 * 3600),
+        ("3d", 3 * 24 * 3600)
+    ]
 
     private var hours: Int { Int(hoursText) ?? 0 }
     private var minutes: Int { min(max(Int(minutesText) ?? 0, 0), 59) }
-    private var totalDuration: TimeInterval { TimeInterval((hours * 3600) + (minutes * 60)) }
+    private var relativeDuration: TimeInterval { TimeInterval((hours * 3600) + (minutes * 60)) }
+    private var absoluteDuration: TimeInterval { max(0, selectedDate.timeIntervalSinceNow) }
+    
+    private var totalDuration: TimeInterval {
+        switch timeSelectionMode {
+        case .relative:
+            return relativeDuration
+        case .absolute:
+            return absoluteDuration
+        }
+    }
+    
+    private var maxAllowedDate: Date {
+        Date().addingTimeInterval(settings.maxAllowedDuration)
+    }
+    
     private var canSave: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && 
         totalDuration > 0 && 
@@ -201,6 +233,16 @@ struct InlineCreateTaskView: View {
     }
     private var exceedsLimit: Bool {
         totalDuration > settings.maxAllowedDuration
+    }
+    
+    private func resetForm() {
+        title = ""
+        hoursText = ""
+        minutesText = ""
+        location = ""
+        link = ""
+        timeSelectionMode = .relative
+        selectedDate = Date().addingTimeInterval(3600) // 1 hour from now
     }
 
     var body: some View {
@@ -217,48 +259,19 @@ struct InlineCreateTaskView: View {
                 .help("Close")
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Task name", text: $title)
+            VStack(alignment: .leading, spacing: 12) {
+                // Task name
+                TextField("What is this about?", text: $title)
                     .textFieldStyle(.roundedBorder)
+                    .font(.body)
 
+                // Location and URL on same line
                 HStack(spacing: 8) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Hours").font(.caption).foregroundStyle(.secondary)
-                        TextField("0", text: $hoursText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 60)
-                            .onChange(of: hoursText) { _, newValue in
-                                hoursText = newValue.filter { $0.isNumber }
-                            }
-                    }
-
-                    Text(":").font(.headline).padding(.horizontal, 4)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Minutes").font(.caption).foregroundStyle(.secondary)
-                        TextField("0", text: $minutesText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 60)
-                            .onChange(of: minutesText) { _, newValue in
-                                minutesText = newValue.filter { $0.isNumber }
-                            }
-                    }
-                    
-                    Spacer()
-                    
-                    if exceedsLimit {
-                        Text("Max: \(formatRemaining(settings.maxAllowedDuration))")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                }
-
-                HStack(spacing: 8) {
-                    TextField("Location (Optional)", text: $location)
+                    TextField("Location", text: $location)
                         .textFieldStyle(.roundedBorder)
                     
                     HStack(spacing: 4) {
-                        TextField("URL (Optional)", text: $link)
+                        TextField("URL", text: $link)
                             .textFieldStyle(.roundedBorder)
                         
                         if !link.isEmpty {
@@ -275,15 +288,139 @@ struct InlineCreateTaskView: View {
                     }
                 }
 
+                // Time selection mode toggle with "Fades in" label
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Text("Fades in ")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.primary)
+                        
+                        ForEach(TimeSelectionMode.allCases, id: \.self) { mode in
+                            Button(action: {
+                                timeSelectionMode = mode
+                                // Sync values when switching modes
+                                if mode == .absolute && selectedDate <= Date() {
+                                    selectedDate = Date().addingTimeInterval(max(1800, relativeDuration))
+                                } else if mode == .relative && relativeDuration <= 0 {
+                                    let duration = max(1800, absoluteDuration)
+                                    hoursText = String(Int(duration) / 3600)
+                                    minutesText = String((Int(duration) % 3600) / 60)
+                                }
+                            }) {
+                                Text(mode.rawValue)
+                                    .font(.caption.weight(.medium))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                            }
+                            .liquidGlassButton(prominent: timeSelectionMode == mode, circular: false)
+                        }
+                        Spacer()
+                    }
+                    
+                    // Duration input based on selected mode
+                    if timeSelectionMode == .relative {
+                        // Relative duration input
+                        VStack(spacing: 8) {
+                            // Time inputs and max warning on same line
+                            HStack(spacing: 8) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Hours").font(.caption).foregroundStyle(.secondary)
+                                    TextField("0", text: $hoursText)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 60)
+                                        .onChange(of: hoursText) { _, newValue in
+                                            hoursText = newValue.filter { $0.isNumber }
+                                        }
+                                }
+
+                                Text(":")
+                                    .font(.headline)
+                                    .padding(.top, 18) // Align with text fields
+                                    .padding(.horizontal, 4)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Minutes").font(.caption).foregroundStyle(.secondary)
+                                    TextField("0", text: $minutesText)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 60)
+                                        .onChange(of: minutesText) { _, newValue in
+                                            minutesText = newValue.filter { $0.isNumber }
+                                        }
+                                }
+                                
+                                Spacer()
+                                
+                                // Max duration warning
+                                if exceedsLimit {
+                                    Text("Max: \(formatRemaining(settings.maxAllowedDuration))")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                            
+                            // Preset duration buttons on separate line
+                            HStack(spacing: 6) {
+                                ForEach(presetDurations, id: \.1) { label, duration in
+                                    Button(action: {
+                                        let cappedDuration = min(duration, settings.maxAllowedDuration)
+                                        hoursText = String(Int(cappedDuration) / 3600)
+                                        minutesText = String((Int(cappedDuration) % 3600) / 60)
+                                    }) {
+                                        Text(label)
+                                            .font(.caption)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                    }
+                                    .liquidGlassButton(prominent: abs(relativeDuration - duration) < 1800, circular: false)
+                                    .disabled(duration > settings.maxAllowedDuration)
+                                }
+                                Spacer()
+                            }
+                        }
+                    } else {
+                        // Absolute date/time picker
+                        VStack(alignment: .leading, spacing: 6) {
+                            DatePicker(
+                                "Expires at",
+                                selection: $selectedDate,
+                                in: Date()...maxAllowedDate,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            
+                            // Show calculated duration
+                            HStack {
+                                Text("Duration: \(formatRemaining(absoluteDuration))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                if exceedsLimit {
+                                    Text("Max: \(formatRemaining(settings.maxAllowedDuration))")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Save button
                 HStack {
                     Spacer()
                     Button("Save") {
-                        onSave(title, hours, minutes, location, link)
+                        // Convert to hours/minutes for the callback
+                        let duration = min(totalDuration, settings.maxAllowedDuration)
+                        let finalHours = Int(duration) / 3600
+                        let finalMinutes = (Int(duration) % 3600) / 60
+                        onSave(title, finalHours, finalMinutes, location, link)
                     }
                     .liquidGlassButton(prominent: true)
                     .disabled(!canSave)
                 }
             }
+        }
+        .onAppear {
+            resetForm()
         }
     }
 }

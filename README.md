@@ -26,5 +26,3 @@ Ima encourages you to:
 - Accept that some things will expire
 - Develop better judgment about what truly matters
 - Experience time as finite and irreversible
-
-The app rewards finishing tasks before they expire and quietly punishes neglect through the dimming fire indicator—a non-verbal signal of your relationship with time and commitment.
